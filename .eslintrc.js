@@ -10,4 +10,7 @@ module.exports = {
           version: 'detect',
       },
   },
+  rules: {
+    "import/no-webpack-loader-syntax": "off"
+  }
 };

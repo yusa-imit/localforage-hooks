@@ -1,7 +1,6 @@
 import { Scheme } from '../../type/Scheme';
 
-export class Table {
-  table: IDBObjectStore;
+export abstract class Table {
   /**
    * Constructor
    * @param db
@@ -9,7 +8,7 @@ export class Table {
    * @param scheme
    * @param options
    */
-  constructor(
+  getTable(
     db: IDBDatabase,
     tableName: string,
     scheme?: Scheme,
@@ -19,17 +18,34 @@ export class Table {
       uniqueIndexes?: Array<string>;
     }
   ) {
-    this.table = db.createObjectStore(tableName, {
-      autoIncrement: scheme ? false : options?.autoIncrement,
-      keyPath: options?.keyPath,
-    });
-    if (scheme) {
-      scheme.forEach(sch => {
-        if (sch === options?.keyPath || options?.keyPath?.includes(sch)) return;
-        this.table.createIndex(sch, sch, {
-          unique: options?.uniqueIndexes?.includes(sch),
+    return new Promise<IDBObjectStore>((resolve, reject) => {
+      if (db.objectStoreNames.contains(tableName)) {
+        const transaction = db.transaction(tableName);
+        transaction.onerror = error => {
+          reject(error);
+        };
+        transaction.oncomplete = () => {
+          resolve(transaction.objectStore(tableName));
+        };
+      }
+      try {
+        const table = db.createObjectStore(tableName, {
+          autoIncrement: scheme ? false : options?.autoIncrement,
+          keyPath: options?.keyPath,
         });
-      });
-    }
+        if (scheme) {
+          scheme.forEach(sch => {
+            if (sch === options?.keyPath || options?.keyPath?.includes(sch))
+              return;
+            table.createIndex(sch, sch, {
+              unique: options?.uniqueIndexes?.includes(sch),
+            });
+          });
+        }
+        resolve(table);
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 }
