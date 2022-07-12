@@ -3,3 +3,6 @@
 node_modules
 .cache
 dist
+
+# Version 1 directory.
+v1
